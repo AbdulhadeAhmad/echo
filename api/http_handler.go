@@ -55,6 +55,7 @@ func BuildRouter(listenAddress string) {
 	mainRouter.HandleFunc("/", serveStaticFile("index.html"))
 	mainRouter.HandleFunc("/index.js", serveStaticFile("index.js"))
 	mainRouter.HandleFunc("/index.css", serveStaticFile("index.css"))
+	mainRouter.HandleFunc("/favicon.svg", serveStaticFile("favicon.svg"))
 
 	api_router := mainRouter.PathPrefix("/api").Subrouter()
 	api_router.HandleFunc("/session", createSession).Methods("POST")
