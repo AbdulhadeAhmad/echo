@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 func ping(w http.ResponseWriter, r *http.Request) {
@@ -28,13 +29,22 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	`)
 }
 
+var upgrader = websocket.Upgrader{}
+
 func signalWS(w http.ResponseWriter, r *http.Request) {
-	// This will create the websocket for the signaling service.
 	vars := mux.Vars(r)
 	party := vars["party"]
 	session := vars["session"]
 
-	fmt.Printf("Initiating a websocket, party=%s session=%s", party, session)
+	fmt.Printf("Initiating a websocket, party=%s session=%s\n", party, session)
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		fmt.Printf("Error initiating websocket, r.URL=%s e=%s", r.URL.String(), err)
+	}
+
+	websocketSignaler(conn)
 
 }
 
