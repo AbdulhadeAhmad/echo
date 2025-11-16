@@ -14,10 +14,13 @@
     <div class="app">
         <header class="app-header">
             <h1 class="logo">Echo</h1>
+            <p class="tagline">Simple peer-to-peer text & files</p>
         </header>
 
         <main class="app-main">
             <section class="card" id="landing-card">
+                <div class="card-heading">Start a secure session</div>
+                <div class="card-subheading">Create a fresh room or join with an invite code.</div>
                 <div class="actions">
                     <button class="btn btn-primary" id="create-session-btn">
                         Create a session
@@ -37,7 +40,10 @@
 
             <section class="card hidden" id="chat-card">
                 <div class="chat-header">
-                    <div class="chat-session" id="chat-session-info"></div>
+                    <div>
+                        <div class="chat-title">Live session</div>
+                        <div class="chat-session" id="chat-session-info"></div>
+                    </div>
                     <button class="btn btn-secondary" id="leave-session-btn">
                         Leave session
                     </button>
@@ -46,9 +52,14 @@
                 <div class="chat-log" id="chat-log"></div>
 
                 <form class="chat-input-row" id="chat-form">
-                    <input type="text" id="chat-input" class="input" placeholder="Type a message..." autocomplete="off" />
-                    <button class="btn btn-primary" id="chat-send-btn">
-                        Send
+                    <input type="text" id="chat-input" class="input chat-input" placeholder="Type a message..."
+                        autocomplete="off" />
+                    <button class="btnx btn-primary chat-send-btn" id="chat-send-btn" aria-label="Send message"
+                        type="submit">
+                        <svg class="send-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M3.4 20.6c-.5.2-.9-.3-.7-.8l3-8.2c.1-.3 0-.7-.2-.9l-3-3.4c-.4-.5 0-1.3.7-1.1l18.5 6.2c.6.2.6 1 0 1.2L3.4 20.6zm3.5-9.3c.7.7 1.1 1.6.9 2.5l-1 3 10.8-4-10.7-3.5z" />
+                        </svg>
                     </button>
                 </form>
             </section>
