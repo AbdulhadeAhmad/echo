@@ -105,47 +105,24 @@ console.log("Echo mock frontend loaded");
       setSessionInfo(
         "Session ID: " + currentSessionId + " (share this with your peer)"
       );
-      appendMessage(
-        "system",
-        "Session created. TODO: open a WebSocket for signaling and send an SDP offer."
-      );
+
     } else {
       setSessionInfo("Joined session: " + currentSessionId);
-      appendMessage(
-        "system",
-        "Joined session. TODO: connect to the signaling WebSocket and respond with an SDP answer."
-      );
+
     }
 
-    appendMessage(
-      "system",
-      "Mock mode: no real signaling or WebRTC yet. Everything stays local."
-    );
+
   }
 
 
 
   function sendChatMessage(text) {
-    if (!wsConnected) {
-      appendMessage(
-        "system",
-        "Mock mode: sending locally. Wire this up to RTCDataChannel.send()."
-      );
-    }
 
 
     dataChannel.send(text)
 
     appendMessage("me", text);
 
-
-
-    if (!wsConnected) {
-      appendMessage(
-        "them",
-        "(Simulated peer) Replace with your RTCDataChannel onmessage handler."
-      );
-    }
   }
 
   async function createSession() {
@@ -256,6 +233,8 @@ console.log("Echo mock frontend loaded");
       await handleOffer(payload)
     } else if (payload.type == "hello" && lastSignal) {
       sendSignal(lastSignal)
+    } else if (payload.type == "answer") {
+      handleAnswer(payload)
     }
   }
 
@@ -275,12 +254,23 @@ console.log("Echo mock frontend loaded");
     rc.ondatachannel = e => {
 
       const receiveChannel = e.channel;
-      receiveChannel.onmessage = e => console.log("message received!!!" + e.data)
-      receiveChannel.onopen = e => console.log("open!!!!");
-      receiveChannel.onclose = e => console.log("closed!!!!!!");
+      receiveChannel.onmessage = e => {
+        console.log("messsage received!!!" + e.data)
+        appendMessage("them", e.data)
+      }
+      receiveChannel.onopen = e => {
+        console.log("open!!!!")
+        setChatInputEnabled(true)
+      };
+      receiveChannel.onclose = e => {
+        console.log("closed!!!!!!")
+        setChatInputEnabled(false)
+      };
       rc.channel = receiveChannel;
 
+      dataChannel = receiveChannel
     }
+
 
 
     await rc.setRemoteDescription(offer)
@@ -291,6 +281,10 @@ console.log("Echo mock frontend loaded");
     console.log("Answer", JSON.stringify(rc.localDescription))
     sendSignal(rc.localDescription)
     lastSignal = rc.localDescription
+  }
+
+  function handleAnswer(answer) {
+    pc.setRemoteDescription(answer).then(a => console.log("Accepted Answer."))
   }
 
   function createChannel() {
