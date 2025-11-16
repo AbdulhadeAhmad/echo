@@ -51,7 +51,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w,
 		`{
-	"sessionId":%s
+	"sessionId":"%s"
 }`, session.id)
 }
 

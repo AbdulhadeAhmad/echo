@@ -17,7 +17,7 @@
         </header>
 
         <main class="app-main">
-            <section class="card">
+            <section class="card" id="landing-card">
                 <div class="actions">
                     <button class="btn btn-primary" id="create-session-btn">
                         Create a session
@@ -33,6 +33,24 @@
                         </button>
                     </div>
                 </div>
+            </section>
+
+            <section class="card hidden" id="chat-card">
+                <div class="chat-header">
+                    <div class="chat-session" id="chat-session-info"></div>
+                    <button class="btn btn-secondary" id="leave-session-btn">
+                        Leave session
+                    </button>
+                </div>
+
+                <div class="chat-log" id="chat-log"></div>
+
+                <form class="chat-input-row" id="chat-form">
+                    <input type="text" id="chat-input" class="input" placeholder="Type a message..." autocomplete="off" />
+                    <button class="btn btn-primary" id="chat-send-btn">
+                        Send
+                    </button>
+                </form>
             </section>
         </main>
     </div>
