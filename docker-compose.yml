@@ -1,0 +1,19 @@
+
+services:
+  echo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: echo-image:latest
+    container_name: echo
+    restart: unless-stopped
+    ports:
+      - "8900:8900"
+    networks:
+      - echo-net
+    environment:
+      - TZ=UTC
+networks:
+  echo-net:
+    name: echo-net
+      
