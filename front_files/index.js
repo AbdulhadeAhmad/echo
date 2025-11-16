@@ -33,15 +33,18 @@ console.log("Echo mock frontend loaded");
 
   var currentSessionId = null;
   var currentParty = null; // "A" (offerer) or "B" (answerer)
-  var mockConnected = false;
+  var wsConnected = false;
+  var ws = null;
+  var pc = null;
+  var rc = null;
 
   function setSessionInfo(text) {
     var partyLabel =
       currentParty === "A"
         ? "You are party A (offerer side)"
         : currentParty === "B"
-        ? "You are party B (answerer side)"
-        : "";
+          ? "You are party B (answerer side)"
+          : "";
 
     sessionInfoEl.textContent = partyLabel
       ? text + " · " + partyLabel
@@ -75,7 +78,7 @@ console.log("Echo mock frontend loaded");
   function resetState() {
     currentSessionId = null;
     currentParty = null;
-    mockConnected = false;
+    wsConnected = false;
     setChatInputEnabled(false);
   }
 
@@ -119,11 +122,11 @@ console.log("Echo mock frontend loaded");
   }
 
   function mockConnectP2P() {
-    if (mockConnected) {
+    if (wsConnected) {
       return;
     }
 
-    mockConnected = true;
+    wsConnected = true;
     setChatInputEnabled(true);
     appendMessage(
       "system",
@@ -132,7 +135,7 @@ console.log("Echo mock frontend loaded");
   }
 
   function sendChatMessage(text) {
-    if (!mockConnected) {
+    if (!wsConnected) {
       appendMessage(
         "system",
         "Mock mode: sending locally. Wire this up to RTCDataChannel.send()."
@@ -141,7 +144,7 @@ console.log("Echo mock frontend loaded");
 
     appendMessage("me", text);
 
-    if (!mockConnected) {
+    if (!wsConnected) {
       appendMessage(
         "them",
         "(Simulated peer) Replace with your RTCDataChannel onmessage handler."
@@ -176,11 +179,11 @@ console.log("Echo mock frontend loaded");
 
       appendMessage(
         "system",
-        "TODO: connect to /api/signal/session/" +
-          currentSessionId +
-          "/party/A via WebSocket."
+        "Created session"
       );
-      mockConnectP2P();
+
+      connectWebSocket()
+
     } catch (err) {
       console.error(err);
       alert(err && err.message ? err.message : "Could not create session.");
@@ -204,10 +207,24 @@ console.log("Echo mock frontend loaded");
     appendMessage(
       "system",
       "TODO: connect to /api/signal/session/" +
-        currentSessionId +
-        "/party/B via WebSocket."
+      currentSessionId +
+      "/party/B via WebSocket."
     );
-    mockConnectP2P();
+    connectWebSocket()
+  }
+
+  function connectWebSocket() {
+    // supporting ws for local testing.
+    var schema = window.location.protocol === "https" ? "wss://" : "ws://"
+
+    var wsURL = schema + window.location.host +
+
+      "/api/signal/session/" + currentSessionId + "/party/" + currentParty
+
+    ws = new WebSocket(wsURL)
+
+    ws.onopen = () => appendMessage("system", "Connected to WS")
+
   }
 
   createBtn.addEventListener("click", function () {
