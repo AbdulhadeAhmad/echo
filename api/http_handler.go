@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+
+	"echo/misc"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -22,29 +25,62 @@ func serveStaticFile(fileName string) http.HandlerFunc {
 }
 
 func createSession(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, `
-	{
-	"sessionId":"XyZ123"
+
+	sessionsMu.RLock()
+	var id string
+	for {
+		id, _ = misc.RandomString(10)
+
+		_, ok := openSessions[id]
+		if !ok {
+			break // make sure we don't have duplicated ids
+		}
+
 	}
-	`)
+	sessionsMu.RUnlock()
+
+	session := Session{
+		id:                     id,
+		lastInteractionTime:    time.Now(),
+		lastInteractedPartyIsA: true,
+	}
+
+	sessionsMu.Lock()
+	openSessions[session.id] = &session
+	sessionsMu.Unlock()
+
+	fmt.Fprintf(w,
+		`{
+	"sessionId":%s
+}`, session.id)
 }
 
 var upgrader = websocket.Upgrader{}
 
 func signalWS(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	party := vars["party"]
-	session := vars["session"]
+	partyStr := vars["party"]
+	sessionId := vars["session"]
 
-	fmt.Printf("Initiating a websocket, party=%s session=%s\n", party, session)
+	fmt.Printf("Initiating a websocket, party=%s session=%s\n", partyStr, sessionId)
+	partyIsA := true
+	switch partyStr {
+	case "A":
+
+	case "B":
+		partyIsA = false
+	default:
+		fmt.Printf("Party is invalid partyStr=%s", partyStr)
+		return
+	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		fmt.Printf("Error initiating websocket, r.URL=%s e=%s", r.URL.String(), err)
+		fmt.Printf("Error initiating websocket, r.URL=%s party=%v e=%s", r.URL.String(), partyIsA, err)
 	}
 
-	websocketSignaler(conn)
+	websocketSignaler(conn, partyIsA, sessionId)
 
 }
 
