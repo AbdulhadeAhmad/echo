@@ -182,7 +182,7 @@ console.log("Echo mock frontend loaded");
 
   async function connectWebSocket() {
     // supporting ws for local testing.
-    var schema = window.location.protocol === "https" ? "wss://" : "ws://"
+    var schema = window.location.protocol === "https:" ? "wss:" : "ws:"
 
     var wsURL = schema + window.location.host +
 
