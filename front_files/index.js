@@ -37,6 +37,8 @@ console.log("Echo mock frontend loaded");
   var ws = null;
   var pc = null;
   var rc = null;
+  var lastSignal = null; // saving the last signal to send it on client connect
+  var dataChannel = null
 
   function setSessionInfo(text) {
     var partyLabel =
@@ -103,53 +105,24 @@ console.log("Echo mock frontend loaded");
       setSessionInfo(
         "Session ID: " + currentSessionId + " (share this with your peer)"
       );
-      appendMessage(
-        "system",
-        "Session created. TODO: open a WebSocket for signaling and send an SDP offer."
-      );
+
     } else {
       setSessionInfo("Joined session: " + currentSessionId);
-      appendMessage(
-        "system",
-        "Joined session. TODO: connect to the signaling WebSocket and respond with an SDP answer."
-      );
+
     }
 
-    appendMessage(
-      "system",
-      "Mock mode: no real signaling or WebRTC yet. Everything stays local."
-    );
+
   }
 
-  function mockConnectP2P() {
-    if (wsConnected) {
-      return;
-    }
 
-    wsConnected = true;
-    setChatInputEnabled(true);
-    appendMessage(
-      "system",
-      "Pretend the RTCDataChannel is open now. Replace this with real WebRTC events."
-    );
-  }
 
   function sendChatMessage(text) {
-    if (!wsConnected) {
-      appendMessage(
-        "system",
-        "Mock mode: sending locally. Wire this up to RTCDataChannel.send()."
-      );
-    }
+
+
+    dataChannel.send(text)
 
     appendMessage("me", text);
 
-    if (!wsConnected) {
-      appendMessage(
-        "them",
-        "(Simulated peer) Replace with your RTCDataChannel onmessage handler."
-      );
-    }
   }
 
   async function createSession() {
@@ -182,7 +155,7 @@ console.log("Echo mock frontend loaded");
         "Created session"
       );
 
-      connectWebSocket()
+      await connectWebSocket()
 
     } catch (err) {
       console.error(err);
@@ -193,7 +166,7 @@ console.log("Echo mock frontend loaded");
     }
   }
 
-  function joinSession() {
+  async function joinSession() {
     var id = sessionIdInput.value.trim();
     if (!id) {
       sessionIdInput.focus();
@@ -204,16 +177,10 @@ console.log("Echo mock frontend loaded");
     currentParty = "B";
     showChat();
 
-    appendMessage(
-      "system",
-      "TODO: connect to /api/signal/session/" +
-      currentSessionId +
-      "/party/B via WebSocket."
-    );
-    connectWebSocket()
+    await connectWebSocket()
   }
 
-  function connectWebSocket() {
+  async function connectWebSocket() {
     // supporting ws for local testing.
     var schema = window.location.protocol === "https" ? "wss://" : "ws://"
 
@@ -223,9 +190,138 @@ console.log("Echo mock frontend loaded");
 
     ws = new WebSocket(wsURL)
 
-    ws.onopen = () => appendMessage("system", "Connected to WS")
+    ws.onopen = () => {
+      appendMessage("system", "Connected to WS")
+
+
+      if (currentParty == "A") {
+        createChannel()
+      } else {
+        sendSignal({ "type": "hello" })
+      }
+    }
+    ws.onmessage = async (event) => {
+      var event_data = event.data
+      console.log("Received from WS", event_data, typeof (event_data))
+      var payload = JSON.parse(event_data)
+      await handleWebSocketEvent(payload)
+    }
+
+
+
 
   }
+  function sendSignal(payload) {
+    if (!payload) {
+      console.warn("Attempted to send empty signaling payload")
+      return
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return
+    }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch (err) {
+      console.error("Failed to send signal", err)
+    }
+  }
+
+  async function handleWebSocketEvent(payload) {
+    console.log("Handling WS Event, payload.type", payload.type, payload, typeof (payload))
+
+    if (payload.type == "offer") {
+      await handleOffer(payload)
+    } else if (payload.type == "hello" && lastSignal) {
+      sendSignal(lastSignal)
+    } else if (payload.type == "answer") {
+      handleAnswer(payload)
+    }
+  }
+
+  async function handleOffer(offer) {
+    console.log("New offer", offer)
+
+    if (!rc) {
+      rc = new RTCPeerConnection()
+    }
+
+    rc.onicecandidate = e => {
+      console.log(" NEW ice candidate!! reprinting SDP ")
+      console.log(JSON.stringify(rc.localDescription))
+    }
+
+
+    rc.ondatachannel = e => {
+
+      const receiveChannel = e.channel;
+      receiveChannel.onmessage = e => {
+        console.log("messsage received!!!" + e.data)
+        appendMessage("them", e.data)
+      }
+      receiveChannel.onopen = e => {
+        console.log("open!!!!")
+        setChatInputEnabled(true)
+      };
+      receiveChannel.onclose = e => {
+        console.log("closed!!!!!!")
+        setChatInputEnabled(false)
+      };
+      rc.channel = receiveChannel;
+
+      dataChannel = receiveChannel
+    }
+
+
+
+    await rc.setRemoteDescription(offer)
+    console.log("Remote description applied")
+
+    var answer = await rc.createAnswer()
+    await rc.setLocalDescription(answer)
+    console.log("Answer", JSON.stringify(rc.localDescription))
+    sendSignal(rc.localDescription)
+    lastSignal = rc.localDescription
+  }
+
+  function handleAnswer(answer) {
+    pc.setRemoteDescription(answer).then(a => console.log("Accepted Answer."))
+  }
+
+  function createChannel() {
+    pc = new RTCPeerConnection()
+
+
+    pc.onicecandidate = e => {
+      console.log(" NEW ice candidate!! on pc reprinting SDP ")
+      console.log(JSON.stringify(pc.localDescription))
+      if (pc.localDescription) {
+        sendSignal(pc.localDescription)
+        lastSignal = pc.localDescription
+      }
+
+    }
+
+
+    const sendChannel = pc.createDataChannel("sendChannel");
+    sendChannel.onmessage = e => {
+      console.log("messsage received!!!" + e.data)
+      appendMessage("them", e.data)
+    }
+    sendChannel.onopen = e => {
+      console.log("open!!!!")
+      setChatInputEnabled(true)
+    };
+    sendChannel.onclose = e => {
+      console.log("closed!!!!!!")
+      setChatInputEnabled(false)
+    };
+
+    dataChannel = sendChannel
+
+
+    pc.createOffer().then(o => pc.setLocalDescription(o))
+  }
+
 
   createBtn.addEventListener("click", function () {
     createSession();
