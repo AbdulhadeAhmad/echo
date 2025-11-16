@@ -46,7 +46,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionsMu.Lock()
-	openSessions[session.id] = session
+	openSessions[session.id] = &session
 	sessionsMu.Unlock()
 
 	fmt.Fprintf(w,

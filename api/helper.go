@@ -15,5 +15,5 @@ type Session struct {
 	lastInteractedPartyIsA bool
 }
 
-var openSessions = make(map[string]Session)
+var openSessions = make(map[string]*Session)
 var sessionsMu sync.RWMutex

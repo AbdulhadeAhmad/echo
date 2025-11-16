@@ -43,18 +43,11 @@ func websocketSignaler(conn *websocket.Conn, partyIsA bool, sessionId string) {
 		}
 	}
 
-	sessionsMu.Lock()
-	openSessions[openSession.id] = openSession
-	sessionsMu.Unlock()
-
 	for {
 		msgType, msg, err := conn.ReadMessage()
 		if err != nil {
 			break
 		}
-		sessionsMu.RLock()
-		openSession, ok := openSessions[sessionId]
-		sessionsMu.RUnlock()
 
 		if !ok {
 			// conn.WriteMessage(1, "{Session not found or something}")
