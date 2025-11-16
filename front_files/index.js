@@ -121,18 +121,7 @@ console.log("Echo mock frontend loaded");
     );
   }
 
-  function mockConnectP2P() {
-    if (wsConnected) {
-      return;
-    }
 
-    wsConnected = true;
-    setChatInputEnabled(true);
-    appendMessage(
-      "system",
-      "Pretend the RTCDataChannel is open now. Replace this with real WebRTC events."
-    );
-  }
 
   function sendChatMessage(text) {
     if (!wsConnected) {
@@ -204,12 +193,6 @@ console.log("Echo mock frontend loaded");
     currentParty = "B";
     showChat();
 
-    appendMessage(
-      "system",
-      "TODO: connect to /api/signal/session/" +
-      currentSessionId +
-      "/party/B via WebSocket."
-    );
     connectWebSocket()
   }
 
@@ -224,8 +207,39 @@ console.log("Echo mock frontend loaded");
     ws = new WebSocket(wsURL)
 
     ws.onopen = () => appendMessage("system", "Connected to WS")
+    ws.onmessage = (event) => handleWebSocketEvent(JSON.parse(event.data))
+
+
+    if (currentParty == "A") {
+      createChannel()
+    }
 
   }
+
+  function handleWebSocketEvent(payload) {
+    // this will handle offers and answers
+  }
+
+  function createChannel() {
+    pc = new RTCPeerConnection()
+
+
+    pc.onicecandidate = e => {
+      console.log(" NEW ice candidate!! on pc reprinting SDP ")
+      console.log(JSON.stringify(pc.localDescription))
+
+    }
+
+
+    const sendChannel = pc.createDataChannel("sendChannel");
+    sendChannel.onmessage = e => console.log("messsage received!!!" + e.data)
+    sendChannel.onopen = e => console.log("open!!!!");
+    sendChannel.onclose = e => console.log("closed!!!!!!");
+
+
+    pc.createOffer().then(o => pc.setLocalDescription(o))
+  }
+
 
   createBtn.addEventListener("click", function () {
     createSession();
