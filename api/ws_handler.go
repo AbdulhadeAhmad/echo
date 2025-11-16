@@ -52,12 +52,31 @@ func websocketSignaler(conn *websocket.Conn, partyIsA bool, sessionId string) {
 		if err != nil {
 			break
 		}
+		sessionsMu.RLock()
+		openSession, ok := openSessions[sessionId]
+		sessionsMu.RUnlock()
 
-		// Let's just echo for now as a placeholder
+		if !ok {
+			// conn.WriteMessage(1, "{Session not found or something}")
 
-		err = conn.WriteMessage(msgType, msg)
+			return
+		}
+
+		var otherConn *websocket.Conn
+		if partyIsA {
+			otherConn = openSession.bConn
+		} else {
+			otherConn = openSession.aConn
+		}
+
+		if otherConn == nil {
+			// conn.WriteMessage(msgType, "other party is not connected to websocket")
+			continue
+		}
+
+		err = otherConn.WriteMessage(msgType, msg)
 		if err != nil {
-			break
+			// do something here
 		}
 	}
 
