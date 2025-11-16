@@ -14,10 +14,13 @@
     <div class="app">
         <header class="app-header">
             <h1 class="logo">Echo</h1>
+            <p class="tagline">Simple peer-to-peer text & files</p>
         </header>
 
         <main class="app-main">
             <section class="card" id="landing-card">
+                <div class="card-heading">Start a secure session</div>
+                <div class="card-subheading">Create a fresh room or join with an invite code.</div>
                 <div class="actions">
                     <button class="btn btn-primary" id="create-session-btn">
                         Create a session
@@ -37,7 +40,10 @@
 
             <section class="card hidden" id="chat-card">
                 <div class="chat-header">
-                    <div class="chat-session" id="chat-session-info"></div>
+                    <div>
+                        <div class="chat-title">Live session</div>
+                        <div class="chat-session" id="chat-session-info"></div>
+                    </div>
                     <button class="btn btn-secondary" id="leave-session-btn">
                         Leave session
                     </button>
@@ -46,7 +52,7 @@
                 <div class="chat-log" id="chat-log"></div>
 
                 <form class="chat-input-row" id="chat-form">
-                    <input type="text" id="chat-input" class="input" placeholder="Type a message..." autocomplete="off" />
+                    <input type="text" id="chat-input" class="input chat-input" placeholder="Type a message..." autocomplete="off" />
                     <button class="btn btn-primary" id="chat-send-btn">
                         Send
                     </button>
