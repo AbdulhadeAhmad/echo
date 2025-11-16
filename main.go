@@ -8,5 +8,5 @@ import (
 func main() {
 	fmt.Println("Hello from echo-echo-cho-o")
 
-	api.BuildRouter(":8080")
+	api.BuildRouter("localhost:8080")
 }
