@@ -7,6 +7,7 @@ import (
 
 func main() {
 	fmt.Println("Hello from echo-echo-cho-o")
+	fmt.Println("Listening to port 8900")
 
-	api.BuildRouter(":8080")
+	api.BuildRouter(":8900")
 }
