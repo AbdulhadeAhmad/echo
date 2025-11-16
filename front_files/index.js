@@ -178,7 +178,7 @@ console.log("Echo mock frontend loaded");
         "Created session"
       );
 
-      connectWebSocket()
+      await connectWebSocket()
 
     } catch (err) {
       console.error(err);
@@ -189,7 +189,7 @@ console.log("Echo mock frontend loaded");
     }
   }
 
-  function joinSession() {
+  async function joinSession() {
     var id = sessionIdInput.value.trim();
     if (!id) {
       sessionIdInput.focus();
@@ -200,10 +200,10 @@ console.log("Echo mock frontend loaded");
     currentParty = "B";
     showChat();
 
-    connectWebSocket()
+    await connectWebSocket()
   }
 
-  function connectWebSocket() {
+  async function connectWebSocket() {
     // supporting ws for local testing.
     var schema = window.location.protocol === "https" ? "wss://" : "ws://"
 
@@ -213,16 +213,32 @@ console.log("Echo mock frontend loaded");
 
     ws = new WebSocket(wsURL)
 
-    ws.onopen = () => appendMessage("system", "Connected to WS")
-    ws.onmessage = (event) => handleWebSocketEvent(JSON.parse(event.data))
+    ws.onopen = () => {
+      appendMessage("system", "Connected to WS")
 
 
-    if (currentParty == "A") {
-      createChannel()
+      if (currentParty == "A") {
+        createChannel()
+      } else {
+        sendSignal({ "type": "hello" })
+      }
     }
+    ws.onmessage = async (event) => {
+      var event_data = event.data
+      console.log("Received from WS", event_data, typeof (event_data))
+      var payload = JSON.parse(event_data)
+      await handleWebSocketEvent(payload)
+    }
+
+
+
 
   }
   function sendSignal(payload) {
+    if (!payload) {
+      console.warn("Attempted to send empty signaling payload")
+      return
+    }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       return
     }
@@ -233,8 +249,48 @@ console.log("Echo mock frontend loaded");
     }
   }
 
-  function handleWebSocketEvent(payload) {
-    // this will handle offers and answers
+  async function handleWebSocketEvent(payload) {
+    console.log("Handling WS Event, payload.type", payload.type, payload, typeof (payload))
+
+    if (payload.type == "offer") {
+      await handleOffer(payload)
+    } else if (payload.type == "hello" && lastSignal) {
+      sendSignal(lastSignal)
+    }
+  }
+
+  async function handleOffer(offer) {
+    console.log("New offer", offer)
+
+    if (!rc) {
+      rc = new RTCPeerConnection()
+    }
+
+    rc.onicecandidate = e => {
+      console.log(" NEW ice candidate!! reprinting SDP ")
+      console.log(JSON.stringify(rc.localDescription))
+    }
+
+
+    rc.ondatachannel = e => {
+
+      const receiveChannel = e.channel;
+      receiveChannel.onmessage = e => console.log("message received!!!" + e.data)
+      receiveChannel.onopen = e => console.log("open!!!!");
+      receiveChannel.onclose = e => console.log("closed!!!!!!");
+      rc.channel = receiveChannel;
+
+    }
+
+
+    await rc.setRemoteDescription(offer)
+    console.log("Remote description applied")
+
+    var answer = await rc.createAnswer()
+    await rc.setLocalDescription(answer)
+    console.log("Answer", JSON.stringify(rc.localDescription))
+    sendSignal(rc.localDescription)
+    lastSignal = rc.localDescription
   }
 
   function createChannel() {
@@ -244,8 +300,10 @@ console.log("Echo mock frontend loaded");
     pc.onicecandidate = e => {
       console.log(" NEW ice candidate!! on pc reprinting SDP ")
       console.log(JSON.stringify(pc.localDescription))
-      sendSignal(JSON.stringify(pc.localDescription))
-      lastSignal = JSON.stringify(pc.localDescription)
+      if (pc.localDescription) {
+        sendSignal(pc.localDescription)
+        lastSignal = pc.localDescription
+      }
 
     }
 
