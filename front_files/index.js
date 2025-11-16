@@ -37,6 +37,8 @@ console.log("Echo mock frontend loaded");
   var ws = null;
   var pc = null;
   var rc = null;
+  var lastSignal = null; // saving the last signal to send it on client connect
+  var dataChannel = null
 
   function setSessionInfo(text) {
     var partyLabel =
@@ -131,7 +133,12 @@ console.log("Echo mock frontend loaded");
       );
     }
 
+
+    dataChannel.send(text)
+
     appendMessage("me", text);
+
+
 
     if (!wsConnected) {
       appendMessage(
@@ -215,6 +222,16 @@ console.log("Echo mock frontend loaded");
     }
 
   }
+  function sendSignal(payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return
+    }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch (err) {
+      console.error("Failed to send signal", err)
+    }
+  }
 
   function handleWebSocketEvent(payload) {
     // this will handle offers and answers
@@ -227,14 +244,27 @@ console.log("Echo mock frontend loaded");
     pc.onicecandidate = e => {
       console.log(" NEW ice candidate!! on pc reprinting SDP ")
       console.log(JSON.stringify(pc.localDescription))
+      sendSignal(JSON.stringify(pc.localDescription))
+      lastSignal = JSON.stringify(pc.localDescription)
 
     }
 
 
     const sendChannel = pc.createDataChannel("sendChannel");
-    sendChannel.onmessage = e => console.log("messsage received!!!" + e.data)
-    sendChannel.onopen = e => console.log("open!!!!");
-    sendChannel.onclose = e => console.log("closed!!!!!!");
+    sendChannel.onmessage = e => {
+      console.log("messsage received!!!" + e.data)
+      appendMessage("them", e.data)
+    }
+    sendChannel.onopen = e => {
+      console.log("open!!!!")
+      setChatInputEnabled(true)
+    };
+    sendChannel.onclose = e => {
+      console.log("closed!!!!!!")
+      setChatInputEnabled(false)
+    };
+
+    dataChannel = sendChannel
 
 
     pc.createOffer().then(o => pc.setLocalDescription(o))
