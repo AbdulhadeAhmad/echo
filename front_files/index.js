@@ -235,6 +235,13 @@ console.log("Echo mock frontend loaded");
       sendSignal(lastSignal)
     } else if (payload.type == "answer") {
       handleAnswer(payload)
+    } else if (payload.type === "candidate" && payload.candidate) {
+      try {
+
+        await pc.addIceCandidate(new RTCIceCandidate(payload.candidate))
+      } catch (err) {
+        console.error("Failed to add remote ICE candidate", err)
+      }
     }
   }
 
@@ -246,8 +253,9 @@ console.log("Echo mock frontend loaded");
     }
 
     rc.onicecandidate = e => {
-      console.log(" NEW ice candidate!! reprinting SDP ")
-      console.log(JSON.stringify(rc.localDescription))
+      console.log(" NEW ice candidate!! reprinting SDP for rc ")
+      console.log("ice candidate", e.candidate)
+      sendSignal({ type: "candidate", candidate: e.candidate })
     }
 
 
@@ -280,11 +288,15 @@ console.log("Echo mock frontend loaded");
     await rc.setLocalDescription(answer)
     console.log("Answer", JSON.stringify(rc.localDescription))
     sendSignal(rc.localDescription)
+    appendMessage("system", "Sent Answer")
     lastSignal = rc.localDescription
   }
 
   function handleAnswer(answer) {
-    pc.setRemoteDescription(answer).then(a => console.log("Accepted Answer."))
+    pc.setRemoteDescription(answer).then(a => {
+      console.log("Accepted Answer.")
+      appendMessage("system", "Accepted Answer")
+    })
   }
 
   function createChannel() {
@@ -297,6 +309,7 @@ console.log("Echo mock frontend loaded");
       if (pc.localDescription) {
         sendSignal(pc.localDescription)
         lastSignal = pc.localDescription
+        appendMessage("system", "Sent Offer")
       }
 
     }
