@@ -2,6 +2,20 @@
 
 Echo is a browser-based peer-to-peer text chat for two participants. A Go server serves the web interface, creates sessions, and relays WebRTC signaling over WebSockets. Chat messages travel directly between browsers over a WebRTC data channel. The interface mentions file transfers, which are still unimplemented.
 
+## Demo
+
+
+
+https://github.com/user-attachments/assets/d06c26c3-0108-400f-8f48-5d1381346aed
+
+
+
+## Live Preview
+
+This is a live preview deployed on my server:
+
+[https://echo.abdulha.de](https://echo.abdulha.de)
+
 ## Run locally
 
 Install Go 1.22.2 or later and run this command from the repository root so the server can find `front_files/`.
